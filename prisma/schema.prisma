@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AccommodationCategory {
+  room
+  cottage
+  villa
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  cancelled
+  completed
+}
+
+enum PaymentStatus {
+  pending
+  verifying
+  paid
+  failed
+  refunded
+}
+
+enum PaymentMethod {
+  mastercard
+  visa
+  paypal
+  gcash
+  maya
+}
+
+model Accommodation {
+  id          String               @id @default(uuid())
+  slug        String               @unique
+  name        String
+  category    AccommodationCategory
+  units       Int                  @default(1)
+  price       Float
+  location    String
+  guests      Int
+  bedrooms    Int
+  rating      Float
+  reviews     Int
+  image       String
+  gallery     String[]
+  alt         String
+  about       String[]
+  highlights  Json
+  cleaningFee Float
+  resortFee   Float
+  badge       String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  bookings    BookingItem[]
+}
+
+model Booking {
+  id           String        @id @default(uuid())
+  bookingNumber String        @unique
+  guestName    String
+  email        String
+  phone        String?
+  checkIn      DateTime
+  checkOut     DateTime
+  checkInTime  String
+  checkOutTime String
+  adults       Int
+  children     Int
+  infants      Int
+  subtotal      Float
+  resortFee     Float
+  taxes         Float
+  total         Float
+  bookingFee    Float         @default(0)
+  balanceDue    Float         @default(0)
+  status       BookingStatus @default(pending)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  items        BookingItem[]
+  payment      Payment?
+}
+
+model BookingItem {
+  id              String        @id @default(uuid())
+  bookingId       String
+  accommodationId String
+  accommodation   Accommodation @relation(fields: [accommodationId], references: [id])
+  booking         Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  pricePerNight   Float
+  nights          Int
+  subtotal        Float
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  bookingId       String        @unique
+  booking         Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  method          PaymentMethod
+  amount          Float
+  status          PaymentStatus @default(pending)
+  transactionId   String?
+  paidAt          DateTime?
+  referenceNumber String?
+  senderName      String?
+  proofImage      String?
+  rejectionReason String?
+}
+
+model AdminOtp {
+  id        String   @id @default(uuid())
+  email     String
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      String
+  title     String
+  message   String
+  bookingId String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([read, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  actor     String
+  targetId  String?
+  targetType String?
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([action, createdAt])
+  @@index([actor])
+}
